@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#185FA5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="주차관리">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>주차 차량 관리</title>
+  <style>
+    :root {
+      --primary: #185FA5;
+      --primary-dark: #0C447C;
+      --primary-light: #E6F1FB;
+      --danger: #A32D2D;
+      --danger-light: #FCEBEB;
+      --success: #0F6E56;
+      --success-light: #E1F5EE;
+      --warning: #854F0B;
+      --warning-light: #FAEEDA;
+      --bg: #f5f5f7;
+      --surface: #ffffff;
+      --surface2: #f0f0f2;
+      --border: rgba(0,0,0,0.1);
+      --text: #1c1c1e;
+      --text2: #6e6e73;
+      --text3: #aeaeb2;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary: #4A90D9;
+        --primary-dark: #85B7EB;
+        --primary-light: #042C53;
+        --danger: #F09595;
+        --danger-light: #501313;
+        --success: #5DCAA5;
+        --success-light: #04342C;
+        --warning: #EF9F27;
+        --warning-light: #412402;
+        --bg: #1c1c1e;
+        --surface: #2c2c2e;
+        --surface2: #3a3a3c;
+        --border: rgba(255,255,255,0.1);
+        --text: #f5f5f7;
+        --text2: #aeaeb2;
+        --text3: #636366;
+        --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.05);
+        --shadow-md: 0 4px 20px rgba(0,0,0,0.4);
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: var(--text); }
+    body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; position: relative; }
+
+    /* Header */
+    .header {
+      background: var(--surface);
+      padding: env(safe-area-inset-top, 0px) 0 0;
+      border-bottom: 0.5px solid var(--border);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .header-inner { padding: 14px 16px 0; display: flex; align-items: center; justify-content: space-between; }
+    .header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .header p { font-size: 11px; color: var(--text2); margin-top: 1px; }
+    .sync-badge { font-size: 10px; padding: 3px 8px; border-radius: 99px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+    .sync-badge.online { background: var(--success-light); color: var(--success); }
+    .sync-badge.offline { background: var(--surface2); color: var(--text2); }
+    .sync-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .sync-badge.online .sync-dot { background: var(--success); }
+    .sync-badge.offline .sync-dot { background: var(--text3); }
+
+    /* Tabs */
+    .tab-bar { display: flex; padding: 0 4px; gap: 0; margin-top: 8px; }
+    .tab { flex: 1; text-align: center; font-size: 13px; font-weight: 500; color: var(--text2);
+           padding: 9px 4px; border-bottom: 2px solid transparent; cursor: pointer; transition: all .15s; }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* Content */
+    .content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+                padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Search */
+    .search-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 16px; margin-bottom: 16px; }
+    .search-label { font-size: 11px; font-weight: 600; color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+    .search-row { display: flex; gap: 8px; }
+    .search-input { flex: 1; height: 56px; font-size: 26px; font-weight: 700; text-align: center; letter-spacing: 6px;
+                    border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg);
+                    color: var(--text); outline: none; transition: border-color .15s; }
+    .search-input:focus { border-color: var(--primary); }
+    .search-input::placeholder { font-size: 14px; letter-spacing: 1px; font-weight: 400; color: var(--text3); }
+    .btn-search { height: 56px; padding: 0 20px; background: var(--primary); color: #fff;
+                  border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600;
+                  cursor: pointer; transition: background .15s; white-space: nowrap; }
+    .btn-search:active { background: var(--primary-dark); }
+
+    /* Result */
+    .result-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 12px; }
+    .result-header { padding: 16px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid var(--border); }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; flex-shrink: 0; }
+    .avatar.ok { background: var(--primary-light); color: var(--primary); }
+    .avatar.ng { background: var(--danger-light); color: var(--danger); }
+    .result-name { font-size: 16px; font-weight: 600; }
+    .result-plate { font-size: 12px; color: var(--text2); margin-top: 2px; letter-spacing: 1px; }
+    .result-rows { padding: 4px 0; }
+    .result-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 16px; }
+    .result-row + .result-row { border-top: 0.5px solid var(--border); }
+    .row-label { font-size: 13px; color: var(--text2); }
+    .row-value { font-size: 14px; font-weight: 500; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; }
+    .badge-재단 { background: #E6F1FB; color: #0C447C; }
+    .badge-효성 { background: #EAF3DE; color: #27500A; }
+    .badge-직영 { background: #FAEEDA; color: #633806; }
+    .badge-KMDC { background: #EEEDFE; color: #3C3489; }
+    .badge-대주단 { background: #FAECE7; color: #712B13; }
+    .ng-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px 16px; text-align: center; }
+    .ng-icon { font-size: 40px; margin-bottom: 8px; }
+    .ng-title { font-size: 16px; font-weight: 600; color: var(--danger); }
+    .ng-desc { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+    /* List */
+    .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .filter-btn { height: 30px; padding: 0 12px; font-size: 12px; font-weight: 500; border-radius: 99px;
+                  border: 1px solid var(--border); background: var(--surface); color: var(--text2);
+                  cursor: pointer; transition: all .15s; }
+    .filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .vehicle-list { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .v-item { display: flex; align-items: center; gap: 12px; padding: 13px 16px; cursor: pointer; transition: background .1s; }
+    .v-item:active { background: var(--surface2); }
+    .v-item + .v-item { border-top: 0.5px solid var(--border); }
+    .v-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+    .v-plate { font-size: 15px; font-weight: 600; letter-spacing: 0.5px; }
+    .v-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .v-actions { margin-left: auto; display: flex; gap: 6px; }
+    .icon-btn { width: 32px; height: 32px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: background .1s; color: var(--text2); }
+    .icon-btn:active { background: var(--surface2); }
+    .icon-btn.del { color: var(--danger); }
+    .empty { text-align: center; padding: 40px 16px; color: var(--text2); font-size: 14px; }
+    .count-text { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+
+    /* Add / Edit Form */
+    .form-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 5px; display: block; }
+    .form-input, .form-select {
+      width: 100%; height: 44px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--bg); color: var(--text); padding: 0 12px; font-size: 15px; outline: none; transition: border-color .15s;
+      font-family: inherit; appearance: none; -webkit-appearance: none;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--primary); }
+    .select-wrap { position: relative; }
+    .select-wrap::after { content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text2); pointer-events: none; }
+    .btn-full { width: 100%; height: 48px; background: var(--primary); color: #fff; border: none;
+                border-radius: var(--radius-sm); font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: background .15s; }
+    .btn-full:active { background: var(--primary-dark); }
+    .section-title-sm { font-size: 11px; font-weight: 600; color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+
+    /* Modal (bottom sheet style) */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px)); width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+    .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+    .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .btn-cancel { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); color: var(--text); font-size: 15px; font-weight: 500; cursor: pointer; }
+    .btn-ok { flex: 2; height: 44px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; }
+    .btn-del { flex: 2; height: 44px; background: var(--danger); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; }
+    .confirm-msg { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 4px; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%) translateY(80px);
+             background: #1c1c1e; color: #fff; font-size: 13px; font-weight: 500; padding: 10px 20px;
+             border-radius: 99px; white-space: nowrap; z-index: 200; transition: transform .25s ease, opacity .25s; opacity: 0; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* Loading */
+    .loading { text-align: center; padding: 30px; color: var(--text2); font-size: 14px; }
+    .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <h1>🚘 주차 차량 관리</h1>
+      <p>등록 차량 조회 · 외부 차량 통제</p>
+    </div>
+    <div class="sync-badge offline" id="sync-badge">
+      <div class="sync-dot"></div>
+      <span id="sync-text">연결 중...</span>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('search')">번호 조회</div>
+    <div class="tab" onclick="switchTab('list')">차량 목록</div>
+    <div class="tab" onclick="switchTab('add')">신규 등록</div>
+  </div>
+</div>
+
+<div class="content">
+  <!-- 조회 탭 -->
+  <div class="page active" id="page-search">
+    <div class="search-card">
+      <div class="search-label">차량 번호 뒷자리 4자리 입력</div>
+      <div class="search-row">
+        <input class="search-input" id="search-input" type="text" maxlength="4" placeholder="0000" inputmode="text"
+          oninput="this.value=this.value.replace(/[^0-9가-힣a-zA-Z]/g,''); if(this.value.length===4) doSearch();">
+        <button class="btn-search" onclick="doSearch()">조회</button>
+      </div>
+    </div>
+    <div id="search-result"></div>
+  </div>
+
+  <!-- 목록 탭 -->
+  <div class="page" id="page-list">
+    <div class="filter-row" id="filter-row"></div>
+    <div class="count-text" id="count-text"></div>
+    <div class="vehicle-list" id="vehicle-list"></div>
+  </div>
+
+  <!-- 등록 탭 -->
+  <div class="page" id="page-add">
+    <div class="section-title-sm">새 차량 등록</div>
+    <div class="form-card">
+      <div class="form-group">
+        <label class="form-label">소속</label>
+        <div class="select-wrap">
+          <select class="form-select" id="add-group">
+            <option>재단</option><option>효성</option><option>직영</option><option>KMDC</option><option>대주단</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">차주명 (직책 포함)</label>
+        <input class="form-input" id="add-name" placeholder="예: 홍길동 부장" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label">차량 종류</label>
+        <input class="form-input" id="add-car" placeholder="예: 아반떼" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label">차량 번호</label>
+        <input class="form-input" id="add-plate" placeholder="예: 123가4567" type="text">
+      </div>
+      <button class="btn-full" onclick="addVehicle()">등록하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수정 모달 -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">차량 정보 수정</div>
+    <div class="form-group">
+      <label class="form-label">소속</label>
+      <div class="select-wrap">
+        <select class="form-select" id="edit-group">
+          <option>재단</option><option>효성</option><option>직영</option><option>KMDC</option><option>대주단</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">차주명</label>
+      <input class="form-input" id="edit-name" type="text">
+    </div>
+    <div class="form-group">
+      <label class="form-label">차량 종류</label>
+      <input class="form-input" id="edit-car" type="text">
+    </div>
+    <div class="form-group">
+      <label class="form-label">차량 번호</label>
+      <input class="form-input" id="edit-plate" type="text">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('edit-modal')">취소</button>
+      <button class="btn-ok" onclick="saveEdit()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">차량 삭제</div>
+    <div class="confirm-msg" id="delete-confirm-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('delete-modal')">취소</button>
+      <button class="btn-del" onclick="confirmDelete()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD4tXMrQQZYaVUnTY85sRh7lPB6nyvc1lk",
+    authDomain: "parking-app-e0277.firebaseapp.com",
+    projectId: "parking-app-e0277",
+    storageBucket: "parking-app-e0277.firebasestorage.app",
+    messagingSenderId: "396738208151",
+    appId: "1:396738208151:web:e3af2d34bc0288f131e4d2",
+    measurementId: "G-9CVDK9K0VB"
+  };
+
+  const INITIAL_DATA = [
+    {g:"재단",n:"노상명 차장",c:"스포티지",p:"135두3877"},
+    {g:"재단",n:"김태준 사원",c:"SM3",p:"54도0559"},
+    {g:"재단",n:"최성관 실장",c:"스포티지",p:"48주3383"},
+    {g:"재단",n:"김동철 부장",c:"그랜저",p:"147거6509"},
+    {g:"재단",n:"김병삼 부장",c:"BMW",p:"106머4754"},
+    {g:"재단",n:"문기종 과장",c:"스포티지",p:"245거1558"},
+    {g:"재단",n:"김정순 과장",c:"아반떼",p:"135다7547"},
+    {g:"재단",n:"임 범 대리",c:"테슬라",p:"41도3232"},
+    {g:"재단",n:"백현재 사원",c:"캠리",p:"361오2928"},
+    {g:"재단",n:"최진희 과장",c:"아반떼",p:"158머7377"},
+    {g:"재단",n:"임상식 실장",c:"아반떼",p:"325어6325"},
+    {g:"효성",n:"박준영 대리",c:"골프",p:"67로0996"},
+    {g:"효성",n:"안하영 과장",c:"모닝",p:"58저2120"},
+    {g:"효성",n:"김소이 과장",c:"투싼",p:"144도5667"},
+    {g:"효성",n:"김영배 과장",c:"모닝",p:"67두9416"},
+    {g:"효성",n:"이준희 부장",c:"쏘렌토",p:"65로4695"},
+    {g:"효성",n:"김민기 부장",c:"니로",p:"47다3283"},
+    {g:"효성",n:"업무용 차량",c:"K5",p:"196하4449"},
+    {g:"효성",n:"업무용 차량",c:"K5",p:"196하4450"},
+    {g:"효성",n:"업무용 차량",c:"K5",p:"196하4451"},
+    {g:"효성",n:"업무용 차량",c:"K5",p:"196하4452"},
+    {g:"효성",n:"업무용 차량",c:"카니발",p:"189모3273"},
+    {g:"직영",n:"송서울 부장",c:"렉스턴",p:"23보9697"},
+    {g:"직영",n:"서기봉 팀장",c:"그랜저",p:"110다7067"},
+    {g:"KMDC",n:"류진선 전무",c:"그랜저",p:"07머3259"},
+    {g:"KMDC",n:"이미애 과장",c:"투싼",p:"26수1783"},
+    {g:"대주단",n:"김도한 과장",c:"쏘렌토",p:"38서4168"},
+    {g:"대주단",n:"곽연주",c:"벤츠",p:"62소1696"},
+  ];
+
+  let app, db, vehicles = [], editingId = null, deletingId = null, activeFilter = '전체';
+
+  async function init() {
+    try {
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      setBadge(true);
+
+      // 실시간 동기화
+      onSnapshot(collection(db, 'vehicles'), (snap) => {
+        vehicles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (document.getElementById('page-list').classList.contains('active')) renderList();
+      });
+
+      // 초기 데이터 확인 후 없으면 넣기
+      const snap = await getDocs(collection(db, 'vehicles'));
+      if (snap.empty) {
+        for (const v of INITIAL_DATA) {
+          await addDoc(collection(db, 'vehicles'), v);
+        }
+        showToast('초기 데이터가 등록되었습니다.');
+      }
+    } catch (e) {
+      setBadge(false);
+      showToast('Firebase 설정을 확인해주세요.', 3000);
+      console.error(e);
+    }
+  }
+
+  function setBadge(online) {
+    const b = document.getElementById('sync-badge');
+    const t = document.getElementById('sync-text');
+    b.className = 'sync-badge ' + (online ? 'online' : 'offline');
+    t.textContent = online ? '실시간 연동' : '오프라인';
+  }
+
+  window.switchTab = function(t) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + t).classList.add('active');
+    document.querySelectorAll('.tab')[['search','list','add'].indexOf(t)].classList.add('active');
+    if (t === 'list') renderList();
+    if (t === 'search') document.getElementById('search-input').focus();
+  };
+
+  window.doSearch = function() {
+    const q = document.getElementById('search-input').value.trim();
+    const res = document.getElementById('search-result');
+    if (q.length < 4) { res.innerHTML = '<div class="ng-card"><div class="ng-desc">4자리를 입력해주세요</div></div>'; return; }
+    const hits = vehicles.filter(v => v.p && v.p.endsWith(q));
+    if (!hits.length) {
+      res.innerHTML = `<div class="ng-card"><div class="ng-icon">⛔</div><div class="ng-title">미등록 차량</div><div class="ng-desc">번호 뒷자리 <b>${q}</b> — 외부 차량일 수 있습니다.</div></div>`;
+      return;
+    }
+    res.innerHTML = hits.map(v => `
+      <div class="result-card">
+        <div class="result-header">
+          <div class="avatar ok">${v.n ? v.n.slice(0,1) : '?'}</div>
+          <div>
+            <div class="result-name">${v.n || '-'}</div>
+            <div class="result-plate">${v.p || '-'}</div>
+          </div>
+        </div>
+        <div class="result-rows">
+          <div class="result-row"><span class="row-label">소속</span><span class="badge badge-${v.g}">${v.g}</span></div>
+          <div class="result-row"><span class="row-label">차량</span><span class="row-value">${v.c || '-'}</span></div>
+          <div class="result-row"><span class="row-label">번호판</span><span class="row-value" style="letter-spacing:1px">${v.p || '-'}</span></div>
+        </div>
+      </div>`).join('');
+  };
+
+  function renderList() {
+    const groups = ['전체', ...new Set(vehicles.map(v => v.g).filter(Boolean))];
+    document.getElementById('filter-row').innerHTML = groups.map(g =>
+      `<button class="filter-btn${activeFilter===g?' active':''}" onclick="setFilter('${g}')">${g}</button>`
+    ).join('');
+    const filtered = activeFilter === '전체' ? vehicles : vehicles.filter(v => v.g === activeFilter);
+    document.getElementById('count-text').textContent = `총 ${filtered.length}대`;
+    if (!filtered.length) { document.getElementById('vehicle-list').innerHTML = '<div class="empty">등록된 차량이 없습니다.</div>'; return; }
+    document.getElementById('vehicle-list').innerHTML = filtered.map(v => `
+      <div class="v-item">
+        <div class="v-avatar">${v.n ? v.n.slice(0,1) : '?'}</div>
+        <div>
+          <div class="v-plate">${v.p || '-'}</div>
+          <div class="v-meta"><span class="badge badge-${v.g}" style="font-size:10px;padding:1px 6px">${v.g}</span>&nbsp;${v.n || ''} · ${v.c || ''}</div>
+        </div>
+        <div class="v-actions">
+          <button class="icon-btn" onclick="openEdit('${v.id}')">✎</button>
+          <button class="icon-btn del" onclick="openDelete('${v.id}')">✕</button>
+        </div>
+      </div>`).join('');
+  }
+
+  window.setFilter = function(g) { activeFilter = g; renderList(); };
+
+  window.openEdit = function(id) {
+    const v = vehicles.find(x => x.id === id);
+    if (!v) return;
+    editingId = id;
+    document.getElementById('edit-group').value = v.g || '재단';
+    document.getElementById('edit-name').value = v.n || '';
+    document.getElementById('edit-car').value = v.c || '';
+    document.getElementById('edit-plate').value = v.p || '';
+    document.getElementById('edit-modal').classList.add('open');
+  };
+
+  window.saveEdit = async function() {
+    const g = document.getElementById('edit-group').value;
+    const n = document.getElementById('edit-name').value.trim();
+    const c = document.getElementById('edit-car').value.trim();
+    const p = document.getElementById('edit-plate').value.trim();
+    if (!n || !c || !p) { showToast('모든 항목을 입력해주세요.'); return; }
+    try {
+      await updateDoc(doc(db, 'vehicles', editingId), { g, n, c, p });
+      closeModal('edit-modal');
+      showToast('수정되었습니다.');
+    } catch (e) { showToast('오류가 발생했습니다.'); }
+  };
+
+  window.openDelete = function(id) {
+    const v = vehicles.find(x => x.id === id);
+    if (!v) return;
+    deletingId = id;
+    document.getElementById('delete-confirm-msg').innerHTML = `<b>${v.n}</b>(${v.p}) 차량을 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.`;
+    document.getElementById('delete-modal').classList.add('open');
+  };
+
+  window.confirmDelete = async function() {
+    try {
+      await deleteDoc(doc(db, 'vehicles', deletingId));
+      closeModal('delete-modal');
+      showToast('삭제되었습니다.');
+    } catch (e) { showToast('오류가 발생했습니다.'); }
+  };
+
+  window.addVehicle = async function() {
+    const g = document.getElementById('add-group').value;
+    const n = document.getElementById('add-name').value.trim();
+    const c = document.getElementById('add-car').value.trim();
+    const p = document.getElementById('add-plate').value.trim();
+    if (!n || !c || !p) { showToast('모든 항목을 입력해주세요.'); return; }
+    try {
+      await addDoc(collection(db, 'vehicles'), { g, n, c, p });
+      document.getElementById('add-name').value = '';
+      document.getElementById('add-car').value = '';
+      document.getElementById('add-plate').value = '';
+      showToast('등록되었습니다.');
+      switchTab('list');
+    } catch (e) { showToast('오류가 발생했습니다.'); }
+  };
+
+  window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); };
+
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+  });
+
+  function showToast(msg, dur = 2000) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), dur);
+  }
+
+  // Service Worker 등록
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(console.error);
+  }
+
+  init();
+</script>
+</body>
+</html>
